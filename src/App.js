@@ -21,7 +21,7 @@ export default class LoginForm extends Component {
     e.preventDefault()
     const {input} = this.state
     this.setState({loading: !this.state.loading})
-    axios.post('http://172.25.36.77:9000/getSaldo', {input} )
+    axios.post('UBUNTUSRV:9000/getSaldo', {input} )
       .then((result) => {
         const {saldo, namaLengkap, statusAktif} = result.data
         this.setState({saldo, namaLengkap, statusAktif})
