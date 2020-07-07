@@ -4,47 +4,72 @@ import axios from 'axios'
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 
+const initialState = {
+  kpjError: false,
+  saldo: 0,
+  namaLengkap: '',
+  statusAktif: '',
+  loading: false,
+  input: "",
+  npp: "",
+  namaPrs: "",
+  noIdentitas: "",
+  cleaning: false
+}
+
 export default class LoginForm extends Component {
   constructor(props) {
     super(props)
-    this.state = {
-      kpjError: false,
-      saldo: 0,
-      namaLengkap: '',
-      statusAktif: '',
-      loading: false,
-      input: ""
-    }
+    this.state = initialState
   }
 
-  handleSubmit= (e) => {
+  cleanState = () => {
+    this.setState({cleaning: true})
+    setTimeout(() => {
+      this.setState(
+        initialState,
+        () => {
+          this.keyboard.setInput(this.state.input)
+        }
+      )
+    }, 10000)
+  }
+
+  handleSubmit = (e) => {
     e.preventDefault()
     const {input} = this.state
     this.setState({loading: !this.state.loading})
     axios.post('http://UBUNTUSRV:9000/getSaldo', {input} )
       .then((result) => {
-        const {saldo, namaLengkap, statusAktif} = result.data
-        this.setState({saldo, namaLengkap, statusAktif})
-        this.setState({loading: !this.state.loading})
-        setTimeout(() => {
-          this.setState({saldo: 0, input: ''}, () => {
-            console.log("inputState", this.state.input)
-            this.keyboard.setInput(this.state.input)
-          })
-        }, 10000)
+        const {saldo, namaLengkap, statusAktif, namaPrs, npp, noIdentitas} = result.data
+        saldo > 0
+          ? this.setState({
+              saldo,
+              namaLengkap,
+              statusAktif,
+              namaPrs,
+              npp,
+              noIdentitas,
+              loading: !this.state.loading
+            })
+          : this.setState({
+              kpjError: {
+                content:"No. KPJ ini sudah pernah digabungkan atau sudah pernah melakukan klaim",
+                pointing: 'below'
+              },
+              loading: !this.state.loading
+            })
+        this.cleanState()
       })
       .catch((err) => {
-        this.setState({kpjError: {
-          content:"No. KPJ tidak ditemukan",
-          pointing: 'below'}, loading: !this.state.loading})
-        setTimeout(() => {
-          this.setState(
-            {saldo: 0, input: '', kpjError: false},
-            () => {
-              console.log("input", this.state.input)
-            }
-          )
-        }, 10000)
+        this.setState({
+          kpjError: {
+            content:"No. KPJ tidak ditemukan",
+            pointing: 'below'
+          },
+          loading: !this.state.loading
+        })
+        this.cleanState()
       })
   }
 
@@ -105,8 +130,16 @@ export default class LoginForm extends Component {
                     <Table striped>
                       <Table.Body>
                         <Table.Row>
+                          <Table.Cell>No. Identitas</Table.Cell>
+                          <Table.Cell>{this.state.noIdentitas}</Table.Cell>
+                        </Table.Row>
+                        <Table.Row>
                           <Table.Cell>Nama</Table.Cell>
                           <Table.Cell>{this.state.namaLengkap}</Table.Cell>
+                        </Table.Row>
+                        <Table.Row>
+                          <Table.Cell>Nama Perusahaan</Table.Cell>
+                          <Table.Cell>{this.state.namaPrs} ({this.state.npp})</Table.Cell>
                         </Table.Row>
                         <Table.Row>
                           <Table.Cell>Status Aktif</Table.Cell>
@@ -122,22 +155,28 @@ export default class LoginForm extends Component {
                 }
             </Grid.Column>
           </Grid.Row>
-          <Grid.Row style={{ maxWidth: 900, maxHeight: 200 }}>    
-            <Keyboard
-              keyboardRef={r => (this.keyboard = r)}
-              layout={{
-                default: [
-                  "1 2 3 4 5 6 7 8 9 0 {bksp}",
-                  "Q W E R T Y U I O P",
-                  "A S D F G H J K L",
-                  "Z X C V B N M",
-                ]
-              }}
-              onChange={input => this.onChange(input)}
-              onKeyPress={this.keyOnKeyPress}
-                />
-          </Grid.Row>
-          <Grid.Row></Grid.Row>
+          {
+            !this.state.cleaning
+              ? (
+                  <Grid.Row style={{ maxWidth: 900, maxHeight: 200 }}>
+
+                    <Keyboard
+                      keyboardRef={r => (this.keyboard = r)}
+                      layout={{
+                        default: [
+                          "1 2 3 4 5 6 7 8 9 0 {bksp}",
+                          "Q W E R T Y U I O P",
+                          "A S D F G H J K L",
+                          "Z X C V B N M",
+                        ]
+                      }}
+                      onChange={input => this.onChange(input)}
+                      onKeyPress={this.keyOnKeyPress}
+                        />
+                  </Grid.Row>
+                )
+              : null
+          }
         </Grid>
       </Segment>
     )
